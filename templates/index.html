@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BipiBot - Assistant IA</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chat-bubble {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .typing-indicator::after {
+            content: '...';
+            animation: typingDots 1.5s infinite;
+        }
+        
+        @keyframes typingDots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Header avec logo -->
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-robot text-2xl"></i>
+                <h1 class="text-xl font-bold">BipiBot</h1>
+            </div>
+            <div class="text-sm font-light">Votre assistant IA pour Bpifrance</div>
+        </div>
+    </header>
+
+    <!-- Corps principal -->
+    <main class="flex-grow container mx-auto px-4 py-6 flex flex-col">
+        <!-- Zone de chat -->
+        <div class="bg-white rounded-lg shadow-lg flex-grow flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
+            <!-- Historique des messages -->
+            <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4">
+                <!-- Message de bienvenue -->
+                <div class="flex items-start space-x-3 chat-bubble">
+                    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg rounded-tl-none max-w-3xl">
+                        <p class="text-gray-800">
+                            Bonjour ! Je suis BipiBot, votre assistant virtuel spécialisé dans les informations 
+                            du Guide Pratique du Créateur de Bpifrance. Comment puis-je vous aider aujourd'hui ?
+                        </p>
+                    </div>
+                </div>
+
+                {% if response %}
+                <!-- Question de l'utilisateur -->
+                <div class="flex items-start space-x-3 justify-end chat-bubble">
+                    <div class="bg-gray-200 p-3 rounded-lg rounded-tr-none max-w-3xl">
+                        <p class="text-gray-800">{{ request.form['question'] }}</p>
+                    </div>
+                    <div class="h-10 w-10 rounded-full bg-gray-500 flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+
+                <!-- Réponse du bot -->
+                <div class="flex items-start space-x-3 chat-bubble">
+                    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg rounded-tl-none max-w-3xl">
+                        <p class="text-gray-800 whitespace-pre-line">{{ response }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Message "en train d'écrire" (caché par défaut) -->
+                <div id="typingIndicator" class="flex items-start space-x-3 chat-bubble hidden">
+                    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-lg rounded-tl-none inline-block">
+                        <p class="text-gray-800 typing-indicator">En train d'écrire</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone de saisie -->
+            <form method="post" id="questionForm" class="border-t p-4 bg-gray-50">
+                <div class="flex space-x-2">
+                    <input 
+                        type="text" 
+                        name="question" 
+                        id="questionInput"
+                        placeholder="Posez votre question sur le Guide du Créateur..."
+                        class="flex-grow p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                    <button 
+                        type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 px-6 flex items-center transition-colors"
+                    >
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        <span>Envoyer</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4 text-center text-sm">
+        <div class="container mx-auto">
+            <p>© 2025 BipiBot - Assistant IA pour le Guide Pratique du Créateur</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('questionForm');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const chatHistory = document.getElementById('chatHistory');
+            
+            // Faire défiler vers le bas à chaque chargement
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            // Gérer la soumission du formulaire avec animation
+            form.addEventListener('submit', (e) => {
+                const questionInput = document.getElementById('questionInput');
+                
+                // Vérifier si le formulaire est valide
+                if (form.checkValidity()) {
+                    // Ajouter la question de l'utilisateur au chat
+                    const userQuestion = questionInput.value;
+                    const userBubble = document.createElement('div');
+                    userBubble.className = 'flex items-start space-x-3 justify-end chat-bubble';
+                    userBubble.innerHTML = `
+                        <div class="bg-gray-200 p-3 rounded-lg rounded-tr-none max-w-3xl">
+                            <p class="text-gray-800">${userQuestion}</p>
+                        </div>
+                        <div class="h-10 w-10 rounded-full bg-gray-500 flex items-center justify-center text-white shadow-md">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    `;
+                    
+                    // Ajouter au chat et montrer l'indicateur de frappe
+                    chatHistory.appendChild(userBubble);
+                    typingIndicator.classList.remove('hidden');
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                    
+                    // Le formulaire sera soumis normalement
+                }
+            });
+        });
+    </script>
+</body>
+</html>
